@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Dots — Proxy Agent Onboarding</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: linear-gradient(145deg, #fff 0%, #ececec 60%, #f9f9f9 100%);
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── NAV ── */
+    nav {
+      width: 100%;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e5e5e5;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav-logo {
+      font-weight: 800;
+      font-size: 1.1rem;
+      background: linear-gradient(135deg, #000, #555);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-tabs { display: flex; gap: 4px; }
+
+    .nav-tab {
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #888;
+      transition: all 0.15s;
+    }
+
+    .nav-tab.active {
+      background: #111;
+      color: #fff;
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; width: 100%; max-width: 680px; padding: 48px 16px 80px; }
+    .view.active { display: block; }
+
+    /* ── AGENTS DASHBOARD ── */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .dash-header h2 { font-size: 1.4rem; font-weight: 700; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #111, #444);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: #444;
+      transition: border-color 0.15s;
+    }
+
+    .btn-ghost:hover { border-color: #999; }
+
+    .agents-grid { display: flex; flex-direction: column; gap: 12px; }
+
+    .agent-card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      transition: box-shadow 0.15s;
+    }
+
+    .agent-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+
+    .agent-emoji {
+      font-size: 2rem;
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .agent-info { flex: 1; }
+    .agent-info h3 { font-weight: 700; font-size: 1rem; }
+    .agent-info p { color: #888; font-size: 0.8rem; margin-top: 3px; }
+
+    .agent-status {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #f0f0f0;
+      color: #444;
+      font-weight: 500;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+    }
+
+    .empty-state .big-emoji { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state p { margin-bottom: 20px; font-size: 0.95rem; }
+
+    /* ── ONBOARDING WIZARD ── */
+    .wizard-progress {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 40px;
+    }
+
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #bbb;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .step-dot.done { background: #111; border-color: #111; color: #fff; }
+    .step-dot.active { border-color: #111; color: #111; }
+
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: #e5e5e5;
+      transition: background 0.3s;
+    }
+
+    .step-line.done { background: #111; }
+
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; animation: slideIn 0.25s ease; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .step-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    .step-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .step-sub {
+      color: #777;
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    /* inputs */
+    .field { margin-bottom: 16px; }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    .field input, .field textarea {
+      width: 100%;
+      background: #f7f7f7;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 0.9rem;
+      color: #111;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .field input:focus, .field textarea:focus { border-color: #111; }
+
+    .field textarea { resize: vertical; min-height: 80px; }
+
+    /* path chooser */
+    .path-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+    @media (max-width: 480px) { .path-cards { grid-template-columns: 1fr; } }
+
+    .path-card {
+      background: #fff;
+      border: 2px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 22px 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .path-card:hover { border-color: #111; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .path-card.selected { border-color: #111; }
+
+    .path-icon { font-size: 1.6rem; margin-bottom: 10px; }
+    .path-card h4 { font-weight: 700; font-size: 0.95rem; margin-bottom: 5px; }
+    .path-card p { font-size: 0.8rem; color: #888; line-height: 1.45; }
+
+    /* extract preview */
+    .extract-preview {
+      background: #f7f7f7;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      animation: slideIn 0.25s ease;
+    }
+    .ep-section { margin-bottom: 12px; }
+    .ep-section:last-child { margin-bottom: 0; }
+    .ep-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+    .ep-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ep-tag {
+      background: #111;
+      color: #fff;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+    }
+    .ep-empty { font-size: 0.8rem; color: #bbb; }
+
+    /* tag input */
+    .tag-input-wrap {
+      background: #f7f7f7;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      transition: border-color 0.15s;
+    }
+
+    .tag-input-wrap:focus-within { border-color: #111; }
+
+    .tag {
+      background: #111;
+      color: #fff;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .tag button {
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .tag-input-wrap input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 0.88rem;
+      min-width: 120px;
+      flex: 1;
+      padding: 4px 4px;
+      color: #111;
+    }
+
+    /* emoji picker row */
+    .emoji-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .emoji-opt {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 2px solid #e5e5e5;
+      background: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .emoji-opt:hover { border-color: #999; }
+    .emoji-opt.selected { border-color: #111; background: #f5f5f5; }
+
+    /* step nav */
+    .step-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 28px;
+      gap: 10px;
+    }
+
+    /* ── DEPLOY STEP ── */
+    .soul-preview {
+      background: linear-gradient(135deg, #111, #333);
+      border-radius: 14px;
+      padding: 22px 24px;
+      color: #fff;
+      margin-bottom: 24px;
+    }
+
+    .soul-preview h3 { font-size: 1rem; margin-bottom: 14px; opacity: 0.7; font-weight: 500; }
+
+    .soul-preview .soul-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+    }
+
+    .soul-preview .soul-key { color: #aaa; width: 90px; flex-shrink: 0; }
+    .soul-preview .soul-val { color: #fff; }
+
+    .deploy-box {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .deploy-box h3 { font-weight: 700; font-size: 0.95rem; margin-bottom: 14px; }
+
+    .deploy-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      color: #444;
+      line-height: 1.5;
+    }
+
+    .deploy-step .num {
+      width: 22px;
+      height: 22px;
+      background: #111;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    code {
+      background: #f0f0f0;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 0.82rem;
+      font-family: 'SF Mono', monospace;
+    }
+
+    /* ── TRY IT VIEW ── */
+    .try-prompt-box {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .try-prompt-box label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .try-row { display: flex; gap: 10px; }
+
+    .try-row input {
+      flex: 1;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 0.9rem;
+      color: #111;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .try-row input:focus { border-color: #111; }
+
+    .log-panel {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .log-panel h3 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #aaa;
+      margin-bottom: 14px;
+    }
+
+    .log-line {
+      font-size: 0.87rem;
+      line-height: 1.55;
+      margin-bottom: 8px;
+      opacity: 0;
+      transform: translateY(5px);
+      animation: fadeUp 0.3s forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-line .agent { font-weight: 700; color: #111; }
+    .log-line.consensus .agent { color: #555; }
+
+    .result-card {
+      background: linear-gradient(135deg, #111, #333);
+      border-radius: 14px;
+      padding: 22px 24px;
+      color: #fff;
+      animation: fadeUp 0.3s forwards;
+    }
+
+    .result-card h3 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+
+    .result-card p { font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; }
+
+    .confirm-btn {
+      margin-top: 14px;
+      background: transparent;
+      border: 1px solid #fff;
+      color: #fff;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .confirm-btn:hover { background: rgba(255,255,255,0.12); }
+
+    .scenario-chip {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: #444;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .scenario-chip:hover { border-color: #111; color: #111; background: #f5f5f5; }
+    .scenario-chip.active { background: #111; color: #fff; border-color: #111; }
+
+    .spinner-wrap { text-align: center; padding: 30px; color: #aaa; font-size: 0.88rem; display: none; }
+    .spinner-wrap.visible { display: block; }
+
+    .spin {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid #ddd;
+      border-top-color: #111;
+      border-radius: 50%;
+      animation: rotate 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes rotate { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/home" class="nav-logo" style="text-decoration:none">Campus Dots ✦</a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showView('agents')">My Agents</button>
+    <button class="nav-tab" onclick="showView('onboard')">+ New Agent</button>
+    <button class="nav-tab" onclick="showView('try')">Try It</button>
+  </div>
+</nav>
+
+<!-- ── AGENTS DASHBOARD ── -->
+<div class="view active" id="view-agents">
+  <div class="dash-header">
+    <h2>Your Proxy Agents</h2>
+    <button class="btn-primary" onclick="showView('onboard')">+ Create Agent</button>
+  </div>
+  <div class="agents-grid" id="agentsGrid">
+    <div class="empty-state">
+      <div class="big-emoji">🤖</div>
+      <p>No agents yet. Create your first Campus Dot.</p>
+      <button class="btn-primary" onclick="showView('onboard')">Get Started</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ONBOARDING WIZARD ── -->
+<div class="view" id="view-onboard">
+
+  <!-- progress bar -->
+  <div class="wizard-progress">
+    <div class="step-dot active" id="sd1">1</div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step-dot" id="sd2">2</div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step-dot" id="sd3">3</div>
+    <div class="step-line" id="sl3"></div>
+    <div class="step-dot" id="sd4">4</div>
+  </div>
+
+  <!-- Step 1: Identity -->
+  <div class="wizard-step active" id="step1">
+    <div class="step-label">Step 1 of 4</div>
+    <div class="step-title">Who is this agent for?</div>
+    <div class="step-sub">Your agent will learn your schedule and negotiate on your behalf.</div>
+
+    <div class="field">
+      <label>Your first name</label>
+      <input type="text" id="f_name" placeholder="e.g. Pratham" />
+    </div>
+
+    <div class="field">
+      <label>Pick an emoji for your agent</label>
+      <div class="emoji-row" id="emojiRow">
+        <div class="emoji-opt selected" data-e="🤖">🤖</div>
+        <div class="emoji-opt" data-e="🦁">🦁</div>
+        <div class="emoji-opt" data-e="🐉">🐉</div>
+        <div class="emoji-opt" data-e="🦊">🦊</div>
+        <div class="emoji-opt" data-e="🐺">🐺</div>
+        <div class="emoji-opt" data-e="🧠">🧠</div>
+        <div class="emoji-opt" data-e="⚡">⚡</div>
+        <div class="emoji-opt" data-e="🔥">🔥</div>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <div></div>
+      <button class="btn-primary" onclick="nextStep(1)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Path chooser -->
+  <div class="wizard-step" id="step2">
+
+    <!-- 2a: choose path -->
+    <div id="s2-choose">
+      <div class="step-label">Step 2 of 4</div>
+      <div class="step-title">How do you want to set up your soul?</div>
+      <div class="step-sub">Fill it in yourself, or import from Cubbie — your agent already knows your week.</div>
+
+      <div class="path-cards">
+        <div class="path-card" onclick="choosePath('manual')">
+          <div class="path-icon">📋</div>
+          <h4>Fill it in</h4>
+          <p>Add your classes, routines, and clubs step by step.</p>
+        </div>
+        <div class="path-card" onclick="choosePath('claude')">
+          <div class="path-icon"><img src="data:image/png;base64,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" style="width:28px;height:28px;object-fit:contain;border-radius:6px;" alt="Cubbie"></div>
+          <h4>Connect to Cubbie</h4>
+          <p>Cubbie knows your Canvas, calendar, and routines. Paste your context and Campus Dots builds your soul profile — so both agents share the same ground truth.</p>
+        </div>
+      </div>
+
+      <div class="step-nav">
+        <button class="btn-ghost" onclick="prevStep(2)">← Back</button>
+      </div>
+    </div>
+
+    <!-- 2b: Claude extraction -->
+    <div id="s2-claude" hidden>
+      <div class="step-label">Step 2 of 4 · Cubbie Import</div>
+      <div class="step-title">Paste your Cubbie context</div>
+      <div class="step-sub">Copy anything Cubbie knows about you — classes, routines, calendar, clubs. We'll extract what your agent needs.</div>
+
+      <div class="field">
+        <label>Your week in your own words</label>
+        <textarea id="f_context" style="min-height:110px" placeholder="e.g. I take MAT 343 and CSE 360 and have a MAT exam Tuesday morning. I lift weights Mon/Wed/Fri 5–6:30 PM and work part-time on campus Sunday mornings 8 AM–noon. I'm in the Sailing Club Saturday mornings. I prefer not to meet before 9 AM."></textarea>
+      </div>
+
+      <div id="extract-preview" hidden></div>
+
+      <div class="step-nav">
+        <button class="btn-ghost" onclick="showS2Choose()">← Back</button>
+        <button class="btn-primary" id="extractBtn" onclick="extractContext()">Extract with Claude →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Step 3: Review schedule -->
+  <div class="wizard-step" id="step3">
+    <div class="step-label">Step 3 of 4</div>
+    <div class="step-title" id="s3-title">Your schedule</div>
+    <div class="step-sub" id="s3-sub">Add or remove anything your agent should know about.</div>
+
+    <div class="field">
+      <label>Classes &amp; exams</label>
+      <div class="tag-input-wrap" id="classesWrap">
+        <input type="text" id="classInput" placeholder="e.g. CSE 360 · MAT 343 Exam Tuesday…" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Routines &amp; jobs</label>
+      <div class="tag-input-wrap" id="routinesWrap">
+        <input type="text" id="routineInput" placeholder="e.g. Gym Mon/Wed/Fri 5–6:30 PM…" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Clubs &amp; extracurriculars</label>
+      <div class="tag-input-wrap" id="clubsWrap">
+        <input type="text" id="clubInput" placeholder="e.g. Sailing Club Sat mornings…" />
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn-ghost" onclick="prevStep(3)">← Back</button>
+      <button class="btn-primary" onclick="nextStep(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Preferences + Deploy -->
+  <div class="wizard-step" id="step4">
+    <div class="step-label">Step 4 of 4</div>
+    <div class="step-title">Preferences &amp; deploy</div>
+    <div class="step-sub">Tell your agent what to protect, then add it to Discord.</div>
+
+    <div class="field">
+      <label>What should your agent prioritize?</label>
+      <textarea id="f_priorities" placeholder="e.g. Protect deep work blocks. Prefer evening sessions. Never schedule before 9 AM."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Your Discord Webhook URL <span style="color:#aaa;font-weight:400">(so your agent speaks in its own voice)</span></label>
+      <input type="text" id="f_webhook" placeholder="https://discord.com/api/webhooks/..." />
+      <p style="font-size:0.75rem;color:#aaa;margin-top:5px">Discord server → channel ⚙️ → Integrations → Webhooks → New Webhook → Copy URL</p>
+    </div>
+
+    <div id="soulPreviewWrap" style="display:none">
+      <div class="soul-preview" id="soulPreview"></div>
+      <div class="deploy-box">
+        <h3>Deploy to Discord</h3>
+        <div class="deploy-step">
+          <div class="num">1</div>
+          <div>Invite ProxyAgent to your server or run <code>python3 bot.py</code> in the project folder.</div>
+        </div>
+        <div class="deploy-step">
+          <div class="num">2</div>
+          <div>Your soul profile is saved. The bot loads it automatically on the next request.</div>
+        </div>
+        <div class="deploy-step">
+          <div class="num">3</div>
+          <div>In Discord, type <code>@ProxyAgent schedule a sprint with [friends] before [deadline]</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn-ghost" onclick="prevStep(4)">← Back</button>
+      <button class="btn-primary" id="deployBtn" onclick="deployAgent()">Create My Agent ✦</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── TRY IT ── -->
+<div class="view" id="view-try">
+  <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:6px">Try the Negotiation</h2>
+  <p style="color:#888;font-size:0.9rem;margin-bottom:20px">Pick a scenario or write your own.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px" id="scenarioChips">
+    <button class="scenario-chip" onclick="loadScenario(0)">📚 Study sprint</button>
+    <button class="scenario-chip" onclick="loadScenario(1)">🚨 Urgent deadline</button>
+    <button class="scenario-chip" onclick="loadScenario(2)">🎬 Movie night</button>
+    <button class="scenario-chip" onclick="loadScenario(3)">⚡ Conflict check</button>
+    <button class="scenario-chip" onclick="loadScenario(4)">🍕 Group dinner</button>
+    <button class="scenario-chip" onclick="loadScenario(5)">🔁 Weekly standup</button>
+    <button class="scenario-chip" onclick="loadScenario(6)">😴 All-nighter avoid</button>
+    <button class="scenario-chip" onclick="loadScenario(7)">❌ Deadlock test</button>
+  </div>
+
+  <div class="try-prompt-box">
+    <label>Scheduling Request</label>
+    <div class="try-row">
+      <input id="tryPrompt" type="text"
+        value="Schedule a 3-hour CSE 360 sprint with Mayank and Aaryan before Tuesday"
+        placeholder="Type a scheduling request…" />
+      <button class="btn-primary" id="tryBtn" onclick="runNegotiation()">Negotiate ⚡</button>
+    </div>
+  </div>
+
+  <div class="spinner-wrap" id="spinner"><span class="spin"></span>Agents negotiating…</div>
+
+  <div id="tryOutput" style="display:none">
+    <div class="log-panel">
+      <h3>Agent Negotiation Log</h3>
+      <div id="logLines"></div>
+    </div>
+    <div class="result-card" id="resultCard" style="display:none">
+      <h3>Scheduled</h3>
+      <p id="resultText"></p>
+      <button class="confirm-btn" onclick="this.textContent='✅ Confirmed!'">👍 Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── state ──
+let selectedEmoji = '🤖';
+const classes = [], routines = [], clubs = [];
+
+// ── nav ──
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  const tabs = { agents: 0, onboard: 1, try: 2 };
+  document.querySelectorAll('.nav-tab')[tabs[v]].classList.add('active');
+  if (v === 'agents') loadAgents();
+}
+
+// ── agents dashboard ──
+async function loadAgents() {
+  const grid = document.getElementById('agentsGrid');
+  try {
+    const res = await fetch('/api/souls');
+    const souls = await res.json();
+    if (!souls.length) {
+      grid.innerHTML = `<div class="empty-state">
+        <div class="big-emoji">🤖</div>
+        <p>No agents yet. Create your first Campus Dot.</p>
+        <button class="btn-primary" onclick="showView('onboard')">Get Started</button>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = souls.map(s => `
+      <div class="agent-card">
+        <div class="agent-emoji">${s.emoji || '🤖'}</div>
+        <div class="agent-info">
+          <h3>${s.owner}'s Agent</h3>
+          <p>${[...(s.hard_constraints.classes||[]), ...(s.hard_constraints.routines||[])].slice(0,2).join(' · ') || 'No constraints set'}</p>
+        </div>
+        <div class="agent-status">Active</div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ── emoji picker ──
+document.getElementById('emojiRow').addEventListener('click', e => {
+  const opt = e.target.closest('.emoji-opt');
+  if (!opt) return;
+  document.querySelectorAll('.emoji-opt').forEach(o => o.classList.remove('selected'));
+  opt.classList.add('selected');
+  selectedEmoji = opt.dataset.e;
+});
+
+// ── tag inputs ──
+const tagArrays = {};
+
+function setupTagInput(inputId, wrapId, arr) {
+  tagArrays[wrapId] = arr;
+  const input = document.getElementById(inputId);
+  input.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+      e.preventDefault();
+      addTag(input.value.trim(), wrapId, inputId);
+      input.value = '';
+    }
+  });
+}
+
+function addTag(val, wrapId, inputId) {
+  const arr = tagArrays[wrapId];
+  arr.push(val);
+  const wrap = document.getElementById(wrapId);
+  const tag = document.createElement('div');
+  tag.className = 'tag';
+  tag.dataset.val = val;
+  tag.dataset.wrap = wrapId;
+  tag.innerHTML = `${val} <button onclick="removeTag(this)">×</button>`;
+  wrap.insertBefore(tag, document.getElementById(inputId));
+}
+
+function removeTag(btn) {
+  const tagEl = btn.parentElement;
+  const arr = tagArrays[tagEl.dataset.wrap];
+  const idx = arr.indexOf(tagEl.dataset.val);
+  if (idx > -1) arr.splice(idx, 1);
+  tagEl.remove();
+}
+
+setupTagInput('classInput', 'classesWrap', classes);
+setupTagInput('routineInput', 'routinesWrap', routines);
+setupTagInput('clubInput', 'clubsWrap', clubs);
+
+// ── wizard ──
+let currentStep = 1;
+let chosenPath = 'manual';
+
+function updateProgress(step) {
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('sd' + i);
+    dot.classList.remove('done', 'active');
+    if (i < step) dot.classList.add('done');
+    else if (i === step) dot.classList.add('active');
+  }
+  for (let i = 1; i <= 3; i++) {
+    const line = document.getElementById('sl' + i);
+    line.classList.toggle('done', i < step);
+  }
+}
+
+function nextStep(from) {
+  if (from === 1 && !document.getElementById('f_name').value.trim()) {
+    document.getElementById('f_name').focus(); return;
+  }
+  document.getElementById('step' + from).classList.remove('active');
+  currentStep = from + 1;
+  document.getElementById('step' + currentStep).classList.add('active');
+  updateProgress(currentStep);
+}
+
+function prevStep(from) {
+  document.getElementById('step' + from).classList.remove('active');
+  currentStep = from - 1;
+  document.getElementById('step' + currentStep).classList.add('active');
+  // when going back to step 2, always show the choose panel
+  if (currentStep === 2) showS2Choose();
+  updateProgress(currentStep);
+}
+
+// ── path chooser ──
+function choosePath(path) {
+  chosenPath = path;
+  if (path === 'manual') {
+    document.getElementById('s3-title').textContent = 'Your schedule';
+    document.getElementById('s3-sub').textContent = 'Add your classes, routines, and clubs.';
+    nextStep(2);
+  } else {
+    document.getElementById('s2-choose').hidden = true;
+    document.getElementById('s2-claude').hidden = false;
+  }
+}
+
+function showS2Choose() {
+  document.getElementById('s2-claude').hidden = true;
+  document.getElementById('s2-choose').hidden = false;
+}
+
+async function extractContext() {
+  const text = document.getElementById('f_context').value.trim();
+  if (!text) { document.getElementById('f_context').focus(); return; }
+
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true;
+  btn.textContent = 'Extracting…';
+
+  try {
+    const res = await fetch('/api/parse-soul', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: text }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // clear existing tags
+    ['classesWrap','routinesWrap','clubsWrap'].forEach(wrapId => {
+      tagArrays[wrapId].length = 0;
+      document.querySelectorAll(`#${wrapId} .tag`).forEach(t => t.remove());
+    });
+
+    // populate arrays and show preview
+    (data.classes || []).forEach(v => addTag(v, 'classesWrap', 'classInput'));
+    (data.routines || []).forEach(v => addTag(v, 'routinesWrap', 'routineInput'));
+    (data.clubs || []).forEach(v => addTag(v, 'clubsWrap', 'clubInput'));
+    if (data.priorities) document.getElementById('f_priorities').value = data.priorities;
+
+    // show extracted preview
+    const prev = document.getElementById('extract-preview');
+    prev.hidden = false;
+    prev.innerHTML = `
+      <div class="extract-preview">
+        ${renderEpSection('Classes', data.classes)}
+        ${renderEpSection('Routines', data.routines)}
+        ${renderEpSection('Clubs', data.clubs)}
+      </div>`;
+
+    btn.textContent = 'Looks good — Continue →';
+    btn.disabled = false;
+    btn.onclick = () => {
+      document.getElementById('s3-title').textContent = 'Review & edit';
+      document.getElementById('s3-sub').textContent = 'Claude extracted these from your description. Add or remove anything.';
+      nextStep(2);
+    };
+  } catch(e) {
+    btn.textContent = 'Error — try again';
+    btn.disabled = false;
+    console.error(e);
+  }
+}
+
+function renderEpSection(label, items) {
+  if (!items || !items.length) return '';
+  return `<div class="ep-section">
+    <div class="ep-label">${label}</div>
+    <div class="ep-tags">${items.map(i => `<span class="ep-tag">${i}</span>`).join('')}</div>
+  </div>`;
+}
+
+async function deployAgent() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { showView('onboard'); return; }
+
+  const btn = document.getElementById('deployBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  const payload = {
+    name,
+    emoji: selectedEmoji,
+    classes,
+    routines: [...routines].filter(Boolean),
+    clubs,
+    priorities: document.getElementById('f_priorities').value.trim(),
+    webhook: document.getElementById('f_webhook').value.trim(),
+    context: `${name}'s personal scheduling agent.`,
+  };
+
+  try {
+    const res = await fetch('/api/soul', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // show soul preview
+    const s = data.soul;
+    const allConstraints = [
+      ...(s.hard_constraints.classes || []),
+      ...(s.hard_constraints.routines || []),
+      ...(s.hard_constraints.clubs || []),
+    ];
+    document.getElementById('soulPreview').innerHTML = `
+      <h3>${s.emoji} ${s.owner}'s Soul Profile</h3>
+      ${s.priorities ? `<div class="soul-row"><span class="soul-key">Priorities</span><span class="soul-val">${s.priorities}</span></div>` : ''}
+      ${allConstraints.map(c => `<div class="soul-row"><span class="soul-key">Block</span><span class="soul-val">${c}</span></div>`).join('')}
+    `;
+    document.getElementById('soulPreviewWrap').style.display = 'block';
+    btn.textContent = '✅ Agent Created!';
+    btn.disabled = false;
+  } catch(e) {
+    btn.textContent = 'Error — try again';
+    btn.disabled = false;
+    console.error(e);
+  }
+}
+
+// ── negotiation ──
+async function runNegotiation() {
+  const prompt = document.getElementById('tryPrompt').value.trim();
+  if (!prompt) return;
+
+  const btn = document.getElementById('tryBtn');
+  const spinner = document.getElementById('spinner');
+  const output = document.getElementById('tryOutput');
+  const logLines = document.getElementById('logLines');
+  const resultCard = document.getElementById('resultCard');
+  const resultText = document.getElementById('resultText');
+
+  btn.disabled = true;
+  spinner.classList.add('visible');
+  output.style.display = 'none';
+  logLines.innerHTML = '';
+  resultCard.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/negotiate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    spinner.classList.remove('visible');
+    output.style.display = 'block';
+
+    const lines = data.log.replace(/\*\*/g, '').split('\n')
+      .map(l => l.trim()).filter(l => l && l !== '[Agent Negotiation Log]');
+
+    for (let i = 0; i < lines.length; i++) {
+      await delay(380);
+      const div = document.createElement('div');
+      div.className = 'log-line' + (lines[i].includes('Consensus') ? ' consensus' : '');
+      div.innerHTML = lines[i].replace(/^([\w_]+:)/, '<span class="agent">$1</span>');
+      logLines.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    await delay(500);
+    resultText.textContent = data.answer.replace(/\*\*/g, '').trim();
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch(e) {
+    spinner.classList.remove('visible');
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── scenarios ──
+const SCENARIOS = [
+  "Schedule a 3-hour CSE 360 sprint with Mayank and Aaryan before Tuesday",
+  "We have a CSE 360 project due tomorrow morning — can everyone meet tonight for 4 hours ASAP?",
+  "Find a 2-hour slot this weekend for a movie night — all three of us",
+  "Can Pratham and Mayank both make a 9 AM meeting this Monday?",
+  "Find a time for all three of us to grab dinner this week, ideally 6–9 PM",
+  "Set up a recurring weekly 30-minute check-in for the three of us",
+  "Plan a 6-hour hackathon session before Friday without wrecking anyone's sleep",
+  "Find a 4-hour slot on Sunday morning for everyone — no exceptions",
+];
+
+function loadScenario(i) {
+  document.getElementById('tryPrompt').value = SCENARIOS[i];
+  document.querySelectorAll('.scenario-chip').forEach((c, j) => c.classList.toggle('active', i === j));
+  runNegotiation();
+}
+
+document.getElementById('tryPrompt').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runNegotiation();
+});
+
+// init
+loadAgents();
+</script>
+</body>
+</html>
